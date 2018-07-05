@@ -1,5 +1,23 @@
 --! qt:dataset:src
 
+--add jar /home/msydoron/eclipse-workspace/JethroDataJDBCDriver/target/jethro-jdbc-3.9-standalone.jar;
+--
+--CREATE EXTERNAL TABLE ext_mytable1 (x1 INT, y1 DOUBLE)
+--STORED BY
+--'org.apache.hive.storage.jdbc.JdbcStorageHandler'
+--TBLPROPERTIES ( "hive.sql.database.type" = "JETHRO_DATA",
+--                "hive.sql.jdbc.driver" = "com.jethrodata.JethroDriver",
+--                "hive.sql.jdbc.url" = "jdbc:JethroData://10.0.0.221:9111/demo6",
+--                "hive.sql.dbcp.username" = "jethro",
+--                "hive.sql.dbcp.password" = "jethro",
+--                "hive.sql.table" = "mytable1",
+--                "hive.sql.dbcp.maxActive" = "1");
+--
+--select abs(x1),abs(y1) from ext_mytable1;
+
+
+
+
 set hive.strict.checks.cartesian.product= false;
 
 
@@ -21,7 +39,7 @@ limit 1;
 
 CREATE EXTERNAL TABLE ext_simple_derby_table
 (
- kkey bigint
+ kkey int
 )
 STORED BY 'org.apache.hive.storage.jdbc.JdbcStorageHandler'
 TBLPROPERTIES (
