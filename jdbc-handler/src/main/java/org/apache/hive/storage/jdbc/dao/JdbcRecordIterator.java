@@ -47,7 +47,7 @@ public class JdbcRecordIterator implements Iterator<Map<String, Object>> {
     this.conn = conn;
     this.ps = ps;
     this.rs = rs;
-    if (typeString != null) {
+    if (false && typeString != null) {
       this.columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(typeString);
     }
   }
