@@ -15,7 +15,7 @@ POSTHOOK: Output: dboutput
 PREHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
 
 limit 1
 PREHOOK: type: QUERY
@@ -24,7 +24,7 @@ PREHOOK: Input: default@src
 POSTHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
 
 limit 1
 POSTHOOK: type: QUERY
@@ -34,7 +34,7 @@ POSTHOOK: Input: default@src
 PREHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE )' )
 
 limit 1
 PREHOOK: type: QUERY
@@ -43,7 +43,7 @@ PREHOOK: Input: default@src
 POSTHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE )' )
 
 limit 1
 POSTHOOK: type: QUERY
@@ -138,29 +138,19 @@ POSTHOOK: query: select * from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
-PREHOOK: query: select count(*) from ext_simple_derby_table1
-PREHOOK: type: QUERY
-PREHOOK: Input: default@ext_simple_derby_table1
-#### A masked pattern was here ####
-POSTHOOK: query: select count(*) from ext_simple_derby_table1
-POSTHOOK: type: QUERY
-POSTHOOK: Input: default@ext_simple_derby_table1
-#### A masked pattern was here ####
-0
-PREHOOK: query: select count (distinct bkey) from ext_simple_derby_table1
-PREHOOK: type: QUERY
-PREHOOK: Input: default@ext_simple_derby_table1
-#### A masked pattern was here ####
-POSTHOOK: query: select count (distinct bkey) from ext_simple_derby_table1
-POSTHOOK: type: QUERY
-POSTHOOK: Input: default@ext_simple_derby_table1
-#### A masked pattern was here ####
-0
 PREHOOK: query: select dkey,fkey,bkey,ikey from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
 POSTHOOK: query: select dkey,fkey,bkey,ikey from ext_simple_derby_table1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+PREHOOK: query: select bkey+ikey,fkey+dkey from ext_simple_derby_table1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+POSTHOOK: query: select bkey+ikey,fkey+dkey from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
@@ -172,6 +162,24 @@ POSTHOOK: query: select abs(dkey),abs(ikey),abs(fkey),abs(bkey) from ext_simple_
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+PREHOOK: query: select count(*) from ext_simple_derby_table1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+POSTHOOK: query: select count(*) from ext_simple_derby_table1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+0
+PREHOOK: query: select count(distinct bkey) from ext_simple_derby_table1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+POSTHOOK: query: select count(distinct bkey) from ext_simple_derby_table1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+0
 PREHOOK: query: select dkey from ext_simple_derby_table1 order by dkey
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -287,7 +295,7 @@ INNER JOIN (SELECT *
 FROM "SIMPLE_DERBY_TABLE2"
 WHERE "ikey" IS NOT NULL) AS "t0" ON "t"."ikey" = "t0"."ikey"
           Select Operator
-            expressions: fkey (type: double), dkey (type: double)
+            expressions: fkey (type: float), dkey (type: double)
             outputColumnNames: _col0, _col1
             ListSink
 

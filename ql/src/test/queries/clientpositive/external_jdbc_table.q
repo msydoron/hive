@@ -11,14 +11,14 @@ CREATE TEMPORARY FUNCTION dboutput AS 'org.apache.hadoop.hive.contrib.genericudf
 FROM src
 
 SELECT dboutput ( 'jdbc:derby:;databaseName=${system:test.tmp.dir}/test_derby_as_external_table_db;create=true','','',
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
 
 limit 1;
 
 FROM src
 
 SELECT dboutput ( 'jdbc:derby:;databaseName=${system:test.tmp.dir}/test_derby_as_external_table_db;create=true','','',
-'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" FLOAT, "dkey" DOUBLE )' )
+'CREATE TABLE SIMPLE_DERBY_TABLE2 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE )' )
 
 limit 1;
 
@@ -59,16 +59,19 @@ TBLPROPERTIES (
                 "hive.sql.dbcp.maxActive" = "1"
 );
 
+
 select * from ext_simple_derby_table1;
 
 --Test projection
-select count(*) from ext_simple_derby_table1;
-
-select count (distinct bkey) from ext_simple_derby_table1;
-
 select dkey,fkey,bkey,ikey from ext_simple_derby_table1;
-
+select bkey+ikey,fkey+dkey from ext_simple_derby_table1;
 select abs(dkey),abs(ikey),abs(fkey),abs(bkey) from ext_simple_derby_table1;
+
+
+
+--Test aggregation
+select count(*) from ext_simple_derby_table1;
+select count(distinct bkey) from ext_simple_derby_table1;
 
 
 --Test sort
@@ -131,6 +134,9 @@ SELECT bkey FROM ext_simple_derby_table2;
 --Fails parse.CalcitePlanner: CBO failed, skipping CBO.
 --select sum(fkey) from ext_simple_derby_table1 where bkey in (10, 100);
 
+
+
+--select count(ikey), sum(bkey), avg(dkey), max(fkey) from ext_simple_derby_table1;
 
 
 
