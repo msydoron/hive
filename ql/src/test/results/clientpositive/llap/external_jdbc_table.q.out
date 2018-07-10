@@ -15,7 +15,10 @@ POSTHOOK: Output: dboutput
 PREHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' ),
+
+#### A masked pattern was here ####
+'INSERT INTO SIMPLE_DERBY_TABLE1 ("ikey","bkey","fkey","dkey") VALUES (?,?,?,?)','20','20','20.0','20.0')
 
 limit 1
 PREHOOK: type: QUERY
@@ -24,13 +27,16 @@ PREHOOK: Input: default@src
 POSTHOOK: query: FROM src
 
 #### A masked pattern was here ####
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' ),
+
+#### A masked pattern was here ####
+'INSERT INTO SIMPLE_DERBY_TABLE1 ("ikey","bkey","fkey","dkey") VALUES (?,?,?,?)','20','20','20.0','20.0')
 
 limit 1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 #### A masked pattern was here ####
-0
+0	0
 PREHOOK: query: FROM src
 
 #### A masked pattern was here ####
@@ -138,6 +144,7 @@ POSTHOOK: query: select * from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+20	20	20.0	20.0
 PREHOOK: query: select dkey,fkey,bkey,ikey from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -146,6 +153,7 @@ POSTHOOK: query: select dkey,fkey,bkey,ikey from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+20.0	20.0	20	20
 PREHOOK: query: select bkey+ikey,fkey+dkey from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -154,6 +162,7 @@ POSTHOOK: query: select bkey+ikey,fkey+dkey from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+40	40.0
 PREHOOK: query: select abs(dkey),abs(ikey),abs(fkey),abs(bkey) from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -162,6 +171,7 @@ POSTHOOK: query: select abs(dkey),abs(ikey),abs(fkey),abs(bkey) from ext_simple_
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+20.0	20	20.0	20
 PREHOOK: query: select count(*) from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -170,7 +180,7 @@ POSTHOOK: query: select count(*) from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
-0
+1
 PREHOOK: query: select count(distinct bkey) from ext_simple_derby_table1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -179,7 +189,7 @@ POSTHOOK: query: select count(distinct bkey) from ext_simple_derby_table1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
-0
+1
 PREHOOK: query: select dkey from ext_simple_derby_table1 order by dkey
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -188,6 +198,7 @@ POSTHOOK: query: select dkey from ext_simple_derby_table1 order by dkey
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+20.0
 PREHOOK: query: select SUM_IKEY,bkey from (select sum(-ikey) as SUM_IKEY, bkey from ext_simple_derby_table1 group by bkey) ttt order by bkey
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -196,6 +207,7 @@ POSTHOOK: query: select SUM_IKEY,bkey from (select sum(-ikey) as SUM_IKEY, bkey 
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+-20	20
 PREHOOK: query: explain select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey
 PREHOOK: type: QUERY
 POSTHOOK: query: explain select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey
@@ -230,6 +242,15 @@ POSTHOOK: query: select bkey from ext_simple_derby_table1 where 100 < ext_simple
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+PREHOOK: query: select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911
+PREHOOK: type: QUERY
+PREHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+POSTHOOK: query: select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@ext_simple_derby_table1
+#### A masked pattern was here ####
+NULL
 PREHOOK: query: SELECT distinct dkey from ext_simple_derby_table1 where ikey = '100'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
@@ -255,6 +276,7 @@ POSTHOOK: query: SELECT count(*) from ext_simple_derby_table1 having count(*) > 
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
+1
 PREHOOK: query: select sum(8),8 from ext_simple_derby_table1 where ikey = 1 group by 2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1

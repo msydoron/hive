@@ -11,7 +11,10 @@ CREATE TEMPORARY FUNCTION dboutput AS 'org.apache.hadoop.hive.contrib.genericudf
 FROM src
 
 SELECT dboutput ( 'jdbc:derby:;databaseName=${system:test.tmp.dir}/test_derby_as_external_table_db;create=true','','',
-'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' )
+'CREATE TABLE SIMPLE_DERBY_TABLE1 ("ikey" INTEGER, "bkey" BIGINT, "fkey" REAL, "dkey" DOUBLE)' ),
+
+       dboutput('jdbc:derby:;databaseName=${system:test.tmp.dir}/test_derby_as_external_table_db;create=true','','',
+'INSERT INTO SIMPLE_DERBY_TABLE1 ("ikey","bkey","fkey","dkey") VALUES (?,?,?,?)','20','20','20.0','20.0')
 
 limit 1;
 
@@ -81,7 +84,7 @@ select SUM_IKEY,bkey from (select sum(-ikey) as SUM_IKEY, bkey from ext_simple_d
 --Test filter
 explain select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey;
 select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey;
-
+select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911;
 SELECT distinct dkey from ext_simple_derby_table1 where ikey = '100';
 SELECT count(*) FROM (select * from ext_simple_derby_table1) v WHERE ikey = 100;
 SELECT count(*) from ext_simple_derby_table1 having count(*) > 0;
@@ -141,7 +144,7 @@ SELECT bkey FROM ext_simple_derby_table2;
 
 
 --Fails to ClassCastException
---select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911;
+--
 
 
 
