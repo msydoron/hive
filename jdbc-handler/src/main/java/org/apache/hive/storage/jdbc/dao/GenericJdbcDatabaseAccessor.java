@@ -217,7 +217,7 @@ public class GenericJdbcDatabaseAccessor implements DatabaseAccessor {
       ps.setFetchSize(getFetchSize(conf));
       rs = ps.executeQuery();
 
-      return new JdbcRecordIterator(conn, ps, rs, conf.get(serdeConstants.LIST_COLUMN_TYPES));
+      return new JdbcRecordIterator(conn, ps, rs);
     }
     catch (Exception e) {
       LOGGER.error("Caught exception while trying to execute query", e);
