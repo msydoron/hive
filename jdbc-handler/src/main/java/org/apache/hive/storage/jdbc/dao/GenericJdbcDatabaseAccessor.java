@@ -119,35 +119,35 @@ public class GenericJdbcDatabaseAccessor implements DatabaseAccessor {
       List<String> columnTypes = new ArrayList<String>(numColumns);
       for (int i = 0; i < numColumns; i++) {
         switch (metadata.getColumnType(i + 1)) {
-          case Types.CHAR:
-            columnTypes.add(serdeConstants.STRING_TYPE_NAME);
-            break;
-          case Types.INTEGER:
-            columnTypes.add(serdeConstants.INT_TYPE_NAME);
-            break;
-          case Types.BIGINT:
-            columnTypes.add(serdeConstants.BIGINT_TYPE_NAME);
-            break;
-          case Types.DECIMAL:
-            columnTypes.add(serdeConstants.DECIMAL_TYPE_NAME);
-            break;
-          case Types.FLOAT:
-          case Types.REAL:
-            columnTypes.add(serdeConstants.FLOAT_TYPE_NAME);
-            break;
-          case Types.DOUBLE:
-            columnTypes.add(serdeConstants.DOUBLE_TYPE_NAME);
-            break;
-          case Types.DATE:
-            columnTypes.add(serdeConstants.DATE_TYPE_NAME);
-            break;
-          case Types.TIMESTAMP:
-            columnTypes.add(serdeConstants.TIMESTAMP_TYPE_NAME);
-            break;
+        case Types.CHAR:
+          columnTypes.add(serdeConstants.STRING_TYPE_NAME);
+          break;
+        case Types.INTEGER:
+          columnTypes.add(serdeConstants.INT_TYPE_NAME);
+          break;
+        case Types.BIGINT:
+          columnTypes.add(serdeConstants.BIGINT_TYPE_NAME);
+          break;
+        case Types.DECIMAL:
+          columnTypes.add(serdeConstants.DECIMAL_TYPE_NAME);
+          break;
+        case Types.FLOAT:
+        case Types.REAL:
+          columnTypes.add(serdeConstants.FLOAT_TYPE_NAME);
+          break;
+        case Types.DOUBLE:
+          columnTypes.add(serdeConstants.DOUBLE_TYPE_NAME);
+          break;
+        case Types.DATE:
+          columnTypes.add(serdeConstants.DATE_TYPE_NAME);
+          break;
+        case Types.TIMESTAMP:
+          columnTypes.add(serdeConstants.TIMESTAMP_TYPE_NAME);
+          break;
 
-          default:
-            columnTypes.add(metadata.getColumnTypeName(i+1));
-            break;
+        default:
+          columnTypes.add(metadata.getColumnTypeName(i+1));
+          break;
         }
       }
 
@@ -200,7 +200,7 @@ public class GenericJdbcDatabaseAccessor implements DatabaseAccessor {
 
   @Override
   public JdbcRecordIterator
-  getRecordIterator(Configuration conf, int limit, int offset) throws HiveJdbcDatabaseAccessException {
+    getRecordIterator(Configuration conf, int limit, int offset) throws HiveJdbcDatabaseAccessException {
 
     Connection conn = null;
     PreparedStatement ps = null;

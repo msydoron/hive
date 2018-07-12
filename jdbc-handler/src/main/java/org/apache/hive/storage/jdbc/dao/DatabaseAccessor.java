@@ -29,6 +29,6 @@ public interface DatabaseAccessor {
   int getTotalNumberOfRecords(Configuration conf) throws HiveJdbcDatabaseAccessException;
 
   JdbcRecordIterator
-  getRecordIterator(Configuration conf, int limit, int offset) throws HiveJdbcDatabaseAccessException;
+    getRecordIterator(Configuration conf, int limit, int offset) throws HiveJdbcDatabaseAccessException;
 
 }
