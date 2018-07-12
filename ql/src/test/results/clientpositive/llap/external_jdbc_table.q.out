@@ -327,7 +327,7 @@ POSTHOOK: query: select sum(bkey) from ext_simple_derby_table1 where ikey = 2450
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ext_simple_derby_table1
 #### A masked pattern was here ####
-NULL
+0
 PREHOOK: query: SELECT distinct dkey from ext_simple_derby_table1 where ikey = '100'
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ext_simple_derby_table1
