@@ -73,7 +73,7 @@ public class JdbcRecordIterator implements Iterator<Map<String, Object>> {
         Object value;
         // This is not a complete list, barely make information schema work
         switch (metadata.getColumnTypeName(i+1).toLowerCase()) {
-          case "int":
+          /*case "int":
           case "integer":
           case "smallint":
           case "tinyint":
@@ -103,9 +103,9 @@ public class JdbcRecordIterator implements Iterator<Map<String, Object>> {
           case "datetime":
           case "time":
             value = rs.getDate(i + 1);
-            break;
+            break;*/
           case "timestamp":
-            java.sql.Timestamp dbTs = rs.getTimestamp(i + 1);
+            java.sql.Timestamp dbTs = (java.sql.Timestamp) rs.getObject(i + 1);
             if(dbTs != null) {
               org.apache.hadoop.hive.common.type.Timestamp hiveTs = new org.apache.hadoop.hive.common.type.Timestamp();
               hiveTs.setTimeInMillis(dbTs.getTime(), dbTs.getNanos());
