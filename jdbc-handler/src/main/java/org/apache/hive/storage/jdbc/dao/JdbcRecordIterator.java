@@ -105,7 +105,15 @@ public class JdbcRecordIterator implements Iterator<Map<String, Object>> {
             value = rs.getDate(i + 1);
             break;
           case "timestamp":
-            value = rs.getTimestamp(i + 1);
+            java.sql.Timestamp dbTs = rs.getTimestamp(i + 1);
+            if(dbTs != null) {
+              org.apache.hadoop.hive.common.type.Timestamp hiveTs = new org.apache.hadoop.hive.common.type.Timestamp();
+              hiveTs.setTimeInMillis(dbTs.getTime(), dbTs.getNanos());
+              assert hiveTs.toEpochMilli() == dbTs.getTime();
+              value = hiveTs;
+            } else {
+              value = null;
+            }
             break;
           default:
             value = rs.getObject(i + 1);
