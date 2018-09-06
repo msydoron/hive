@@ -215,6 +215,7 @@ TOK_TABCOLLIST;
 TOK_TABCOL;
 TOK_TABLECOMMENT;
 TOK_TABLEPARTCOLS;
+TOK_TABLEPARTCOLNAMES;
 TOK_TABLEROWFORMAT;
 TOK_TABLEROWFORMATFIELD;
 TOK_TABLEROWFORMATCOLLITEMS;
@@ -334,6 +335,7 @@ TOK_TABNAME;
 TOK_TABSRC;
 TOK_RESTRICT;
 TOK_CASCADE;
+TOK_FORCE;
 TOK_TABLESKEWED;
 TOK_TABCOLVALUE;
 TOK_TABCOLVALUE_PAIR;
@@ -614,6 +616,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
     xlateMap.put("KW_ALLOC_FRACTION", "ALLOC_FRACTION");
     xlateMap.put("KW_SCHEDULING_POLICY", "SCHEDULING_POLICY");
     xlateMap.put("KW_PATH", "PATH");
+    xlateMap.put("KW_AST", "AST");
 
     // Operators
     xlateMap.put("DOT", ".");
@@ -798,6 +801,8 @@ explainOption
     | KW_AUTHORIZATION
     | KW_ANALYZE
     | KW_REOPTIMIZATION
+    | KW_LOCKS
+    | KW_AST
     | (KW_VECTORIZATION vectorizationOnly? vectorizatonDetail?)
     ;
 
@@ -985,6 +990,13 @@ ifNotExists
     -> ^(TOK_IFNOTEXISTS)
     ;
 
+force
+@init { msgs.push("force clause"); }
+@after { msgs.pop(); }
+    : KW_FORCE
+    -> ^(TOK_FORCE)
+    ;
+
 rewriteEnabled
 @init { pushMsg("rewrite enabled clause", state); }
 @after { popMsg(state); }
@@ -1079,7 +1091,7 @@ createTableStatement
          tablePropertiesPrefixed?
        | (LPAREN columnNameTypeOrConstraintList RPAREN)?
          tableComment?
-         tablePartition?
+         createTablePartitionSpec?
          tableBuckets?
          tableSkewed?
          tableRowFormat?
@@ -1092,7 +1104,7 @@ createTableStatement
          ^(TOK_LIKETABLE $likeName?)
          columnNameTypeOrConstraintList?
          tableComment?
-         tablePartition?
+         createTablePartitionSpec?
          tableBuckets?
          tableSkewed?
          tableRowFormat?
@@ -1106,7 +1118,8 @@ createTableStatement
 truncateTableStatement
 @init { pushMsg("truncate table statement", state); }
 @after { popMsg(state); }
-    : KW_TRUNCATE KW_TABLE tablePartitionPrefix (KW_COLUMNS LPAREN columnNameList RPAREN)? -> ^(TOK_TRUNCATETABLE tablePartitionPrefix columnNameList?);
+    : KW_TRUNCATE KW_TABLE tablePartitionPrefix (KW_COLUMNS LPAREN columnNameList RPAREN)? force?
+    -> ^(TOK_TRUNCATETABLE tablePartitionPrefix columnNameList? force?);
 
 dropTableStatement
 @init { pushMsg("drop statement", state); }
@@ -1917,26 +1930,6 @@ createViewStatement
         )
     ;
 
-createMaterializedViewStatement
-@init {
-    pushMsg("create materialized view statement", state);
-}
-@after { popMsg(state); }
-    : KW_CREATE KW_MATERIALIZED KW_VIEW (ifNotExists)? name=tableName
-        rewriteDisabled? tableComment? tableRowFormat? tableFileFormat? tableLocation?
-        tablePropertiesPrefixed? KW_AS selectStatementWithCTE
-    -> ^(TOK_CREATE_MATERIALIZED_VIEW $name
-         ifNotExists?
-         rewriteDisabled?
-         tableComment?
-         tableRowFormat?
-         tableFileFormat?
-         tableLocation?
-         tablePropertiesPrefixed?
-         selectStatementWithCTE
-        )
-    ;
-
 viewPartition
 @init { pushMsg("view partition specification", state); }
 @after { popMsg(state); }
@@ -1948,6 +1941,27 @@ dropViewStatement
 @init { pushMsg("drop view statement", state); }
 @after { popMsg(state); }
     : KW_DROP KW_VIEW ifExists? viewName -> ^(TOK_DROPVIEW viewName ifExists?)
+    ;
+
+createMaterializedViewStatement
+@init {
+    pushMsg("create materialized view statement", state);
+}
+@after { popMsg(state); }
+    : KW_CREATE KW_MATERIALIZED KW_VIEW (ifNotExists)? name=tableName
+        rewriteDisabled? tableComment? tableRowFormat? tableFileFormat? tableLocation?
+        viewPartition? tablePropertiesPrefixed? KW_AS selectStatementWithCTE
+    -> ^(TOK_CREATE_MATERIALIZED_VIEW $name
+         ifNotExists?
+         rewriteDisabled?
+         tableComment?
+         tableRowFormat?
+         tableFileFormat?
+         tableLocation?
+         viewPartition?
+         tablePropertiesPrefixed?
+         selectStatementWithCTE
+        )
     ;
 
 dropMaterializedViewStatement
@@ -1977,11 +1991,26 @@ tableComment
       KW_COMMENT comment=StringLiteral  -> ^(TOK_TABLECOMMENT $comment)
     ;
 
-tablePartition
-@init { pushMsg("table partition specification", state); }
+createTablePartitionSpec
+@init { pushMsg("create table partition specification", state); }
 @after { popMsg(state); }
-    : KW_PARTITIONED KW_BY LPAREN columnNameTypeConstraint (COMMA columnNameTypeConstraint)* RPAREN
+    : KW_PARTITIONED KW_BY LPAREN (opt1 = createTablePartitionColumnTypeSpec | opt2 = createTablePartitionColumnSpec) RPAREN
+    -> {$opt1.tree != null}? $opt1
+    -> $opt2
+    ;
+
+createTablePartitionColumnTypeSpec
+@init { pushMsg("create table partition specification", state); }
+@after { popMsg(state); }
+    : columnNameTypeConstraint (COMMA columnNameTypeConstraint)*
     -> ^(TOK_TABLEPARTCOLS columnNameTypeConstraint+)
+    ;
+
+createTablePartitionColumnSpec
+@init { pushMsg("create table partition specification", state); }
+@after { popMsg(state); }
+    : columnName (COMMA columnName)*
+    -> ^(TOK_TABLEPARTCOLNAMES columnName+)
     ;
 
 tableBuckets
@@ -2225,7 +2254,7 @@ relySpecification
 @init { pushMsg("rely specification", state); }
 @after { popMsg(state); }
     :  KW_RELY -> ^(TOK_RELY)
-    |  (KW_NORELY)? -> ^(TOK_NORELY)
+    |  KW_NORELY -> ^(TOK_NORELY)
     ;
 
 createConstraint
@@ -2481,11 +2510,11 @@ tableConstraintType
     ;
 
 constraintOptsCreate
-    : enableValidateSpecification relySpecification
+    : enableValidateSpecification relySpecification?
     ;
 
 constraintOptsAlter
-    : enableValidateSpecification relySpecification
+    : enableValidateSpecification relySpecification?
     ;
 
 columnNameColonType
@@ -2940,8 +2969,8 @@ mergeStatement
 @init { pushMsg("MERGE statement", state); }
 @after { popMsg(state); }
    :
-   KW_MERGE KW_INTO tableName (KW_AS? identifier)? KW_USING joinSourcePart KW_ON expression whenClauses ->
-    ^(TOK_MERGE ^(TOK_TABREF tableName identifier?) joinSourcePart expression whenClauses)
+   KW_MERGE QUERY_HINT? KW_INTO tableName (KW_AS? identifier)? KW_USING joinSourcePart KW_ON expression whenClauses
+     -> ^(TOK_MERGE ^(TOK_TABREF tableName identifier?) joinSourcePart expression QUERY_HINT? whenClauses)
    ;
 /*
 Allow 0,1 or 2 WHEN MATCHED clauses and 0 or 1 WHEN NOT MATCHED

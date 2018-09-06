@@ -60,6 +60,7 @@ import org.apache.hadoop.hive.ql.exec.persistence.MapJoinKey;
 import org.apache.hadoop.hive.ql.exec.spark.SparkTask;
 import org.apache.hadoop.hive.ql.exec.tez.TezTask;
 import org.apache.hadoop.hive.ql.exec.vector.VectorExpressionDescriptor;
+import org.apache.hadoop.hive.ql.exec.vector.filesink.VectorFileSinkArrowOperator;
 import org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyLongOperator;
 import org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyMultiKeyOperator;
 import org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyStringOperator;
@@ -124,6 +125,7 @@ import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PTFDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
+import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 import org.apache.hadoop.hive.ql.plan.VectorAppMasterEventDesc;
 import org.apache.hadoop.hive.ql.plan.VectorDesc;
 import org.apache.hadoop.hive.ql.plan.VectorFileSinkDesc;
@@ -135,6 +137,7 @@ import org.apache.hadoop.hive.ql.plan.VectorTableScanDesc;
 import org.apache.hadoop.hive.ql.plan.VectorGroupByDesc.ProcessingMode;
 import org.apache.hadoop.hive.ql.plan.VectorSparkHashTableSinkDesc;
 import org.apache.hadoop.hive.ql.plan.VectorSparkPartitionPruningSinkDesc;
+import org.apache.hadoop.hive.ql.plan.VectorTopNKeyDesc;
 import org.apache.hadoop.hive.ql.plan.VectorLimitDesc;
 import org.apache.hadoop.hive.ql.plan.VectorMapJoinInfo;
 import org.apache.hadoop.hive.ql.plan.VectorSMBJoinDesc;
@@ -204,7 +207,6 @@ import org.apache.hadoop.hive.ql.udf.UDFToFloat;
 import org.apache.hadoop.hive.ql.udf.UDFToInteger;
 import org.apache.hadoop.hive.ql.udf.UDFToLong;
 import org.apache.hadoop.hive.ql.udf.UDFToShort;
-import org.apache.hadoop.hive.ql.udf.UDFToString;
 import org.apache.hadoop.hive.ql.udf.UDFWeekOfYear;
 import org.apache.hadoop.hive.ql.udf.UDFYear;
 import org.apache.hadoop.hive.ql.udf.generic.*;
@@ -226,6 +228,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.mapred.InputFormat;
@@ -486,7 +489,7 @@ public class Vectorizer implements PhysicalPlanResolver {
     supportedGenericUDFs.add(UDFToBoolean.class);
     supportedGenericUDFs.add(UDFToFloat.class);
     supportedGenericUDFs.add(UDFToDouble.class);
-    supportedGenericUDFs.add(UDFToString.class);
+    supportedGenericUDFs.add(GenericUDFToString.class);
     supportedGenericUDFs.add(GenericUDFTimestamp.class);
     supportedGenericUDFs.add(GenericUDFToDecimal.class);
     supportedGenericUDFs.add(GenericUDFToDate.class);
@@ -2555,6 +2558,10 @@ public class Vectorizer implements PhysicalPlanResolver {
         desc, "Predicate", VectorExpressionDescriptor.Mode.FILTER, /* allowComplex */ true);
   }
 
+  private boolean validateTopNKeyOperator(TopNKeyOperator op) {
+    List<ExprNodeDesc> keyColumns = op.getConf().getKeyColumns();
+    return validateExprNodeDesc(keyColumns, "Key columns");
+  }
 
   private boolean validateGroupByOperator(GroupByOperator op, boolean isReduce,
       boolean isTezOrSpark, VectorGroupByDesc vectorGroupByDesc) {
@@ -2817,6 +2824,18 @@ public class Vectorizer implements PhysicalPlanResolver {
         setOperatorIssue(functionName + " only UNBOUNDED start frame is supported");
         return false;
       }
+      List<ExprNodeDesc> exprNodeDescList = evaluatorInputExprNodeDescLists[i];
+      final boolean isSingleParameter =
+          (exprNodeDescList != null &&
+          exprNodeDescList.size() == 1);
+      final ExprNodeDesc singleExprNodeDesc =
+          (isSingleParameter ? exprNodeDescList.get(0) : null);
+      final TypeInfo singleTypeInfo =
+          (isSingleParameter ? singleExprNodeDesc.getTypeInfo() : null);
+      final PrimitiveCategory singlePrimitiveCategory =
+          (singleTypeInfo instanceof PrimitiveTypeInfo ?
+              ((PrimitiveTypeInfo) singleTypeInfo).getPrimitiveCategory() : null);
+
       switch (windowFrameDef.getWindowType()) {
       case RANGE:
         if (!windowFrameDef.getEnd().isCurrentRow()) {
@@ -2825,54 +2844,69 @@ public class Vectorizer implements PhysicalPlanResolver {
         }
         break;
       case ROWS:
-        if (!windowFrameDef.isEndUnbounded()) {
-          setOperatorIssue(functionName + " UNBOUNDED end frame is not supported for ROWS window type");
-          return false;
+        {
+          boolean isRowEndCurrent =
+              (windowFrameDef.getEnd().isCurrentRow() &&
+              (supportedFunctionType == SupportedFunctionType.AVG ||
+               supportedFunctionType == SupportedFunctionType.MAX ||
+               supportedFunctionType == SupportedFunctionType.MIN ||
+               supportedFunctionType == SupportedFunctionType.SUM) &&
+              isSingleParameter &&
+              singlePrimitiveCategory != null);
+          if (!isRowEndCurrent && !windowFrameDef.isEndUnbounded()) {
+            setOperatorIssue(
+                functionName + " UNBOUNDED end frame is required for ROWS window type");
+            return false;
+          }
         }
         break;
       default:
         throw new RuntimeException("Unexpected window type " + windowFrameDef.getWindowType());
       }
-      List<ExprNodeDesc> exprNodeDescList = evaluatorInputExprNodeDescLists[i];
-      if (exprNodeDescList != null && exprNodeDescList.size() > 1) {
-        setOperatorIssue("More than 1 argument expression of aggregation function " + functionName);
-        return false;
-      }
-      if (exprNodeDescList != null) {
-        ExprNodeDesc exprNodeDesc = exprNodeDescList.get(0);
 
-        if (containsLeadLag(exprNodeDesc)) {
-          setOperatorIssue("lead and lag function not supported in argument expression of aggregation function " + functionName);
-          return false;
-        }
+      // RANK/DENSE_RANK don't care about columns.
+      if (supportedFunctionType != SupportedFunctionType.RANK &&
+          supportedFunctionType != SupportedFunctionType.DENSE_RANK) {
 
-        if (supportedFunctionType != SupportedFunctionType.COUNT &&
-            supportedFunctionType != SupportedFunctionType.DENSE_RANK &&
-            supportedFunctionType != SupportedFunctionType.RANK) {
-
-          // COUNT, DENSE_RANK, and RANK do not care about column types.  The rest do.
-          TypeInfo typeInfo = exprNodeDesc.getTypeInfo();
-          Category category = typeInfo.getCategory();
-          boolean isSupportedType;
-          if (category != Category.PRIMITIVE) {
-            isSupportedType = false;
-          } else {
-            ColumnVector.Type colVecType =
-                VectorizationContext.getColumnVectorTypeFromTypeInfo(typeInfo);
-            switch (colVecType) {
-            case LONG:
-            case DOUBLE:
-            case DECIMAL:
-              isSupportedType = true;
-              break;
-            default:
-              isSupportedType = false;
-              break;
-            }
-          }
-          if (!isSupportedType) {
-            setOperatorIssue(typeInfo.getTypeName() + " data type not supported in argument expression of aggregation function " + functionName);
+        if (exprNodeDescList != null) {
+          if (exprNodeDescList.size() > 1) {
+            setOperatorIssue("More than 1 argument expression of aggregation function " + functionName);
             return false;
+          }
+
+          ExprNodeDesc exprNodeDesc = exprNodeDescList.get(0);
+
+          if (containsLeadLag(exprNodeDesc)) {
+            setOperatorIssue("lead and lag function not supported in argument expression of aggregation function " + functionName);
+            return false;
+          }
+
+          if (supportedFunctionType != SupportedFunctionType.COUNT) {
+
+            // COUNT does not care about column types.  The rest do.
+            TypeInfo typeInfo = exprNodeDesc.getTypeInfo();
+            Category category = typeInfo.getCategory();
+            boolean isSupportedType;
+            if (category != Category.PRIMITIVE) {
+              isSupportedType = false;
+            } else {
+              ColumnVector.Type colVecType =
+                  VectorizationContext.getColumnVectorTypeFromTypeInfo(typeInfo);
+              switch (colVecType) {
+              case LONG:
+              case DOUBLE:
+              case DECIMAL:
+                isSupportedType = true;
+                break;
+              default:
+                isSupportedType = false;
+                break;
+              }
+            }
+            if (!isSupportedType) {
+              setOperatorIssue(typeInfo.getTypeName() + " data type not supported in argument expression of aggregation function " + functionName);
+              return false;
+            }
           }
         }
       }
@@ -4114,6 +4148,48 @@ public class Vectorizer implements PhysicalPlanResolver {
     return true;
   }
 
+  private boolean checkForArrowFileSink(FileSinkDesc fileSinkDesc,
+      boolean isTezOrSpark, VectorizationContext vContext,
+      VectorFileSinkDesc vectorDesc) throws HiveException {
+
+    // Various restrictions.
+
+    boolean isVectorizationFileSinkArrowNativeEnabled =
+        HiveConf.getBoolVar(hiveConf,
+            HiveConf.ConfVars.HIVE_VECTORIZATION_FILESINK_ARROW_NATIVE_ENABLED);
+
+    String engine = HiveConf.getVar(hiveConf, HiveConf.ConfVars.HIVE_EXECUTION_ENGINE);
+
+    String serdeClassName = fileSinkDesc.getTableInfo().getSerdeClassName();
+
+    boolean isOkArrowFileSink =
+        serdeClassName.equals("org.apache.hadoop.hive.ql.io.arrow.ArrowColumnarBatchSerDe") &&
+        isVectorizationFileSinkArrowNativeEnabled &&
+        engine.equalsIgnoreCase("tez");
+
+    return isOkArrowFileSink;
+  }
+
+  private Operator<? extends OperatorDesc> specializeArrowFileSinkOperator(
+      Operator<? extends OperatorDesc> op, VectorizationContext vContext, FileSinkDesc desc,
+      VectorFileSinkDesc vectorDesc) throws HiveException {
+
+    Class<? extends Operator<?>> opClass = VectorFileSinkArrowOperator.class;
+
+    Operator<? extends OperatorDesc> vectorOp = null;
+    try {
+      vectorOp = OperatorFactory.getVectorOperator(
+          opClass, op.getCompilationOpContext(), op.getConf(),
+          vContext, vectorDesc);
+    } catch (Exception e) {
+      LOG.info("Vectorizer vectorizeOperator file sink class exception " + opClass.getSimpleName() +
+          " exception " + e);
+      throw new HiveException(e);
+    }
+
+    return vectorOp;
+  }
+
   private boolean usesVectorUDFAdaptor(VectorExpression vecExpr) {
     if (vecExpr == null) {
       return false;
@@ -4153,6 +4229,20 @@ public class Vectorizer implements PhysicalPlanResolver {
     return OperatorFactory.getVectorOperator(
         filterOp.getCompilationOpContext(), filterDesc,
         vContext, vectorFilterDesc);
+  }
+
+  private static Operator<? extends OperatorDesc> vectorizeTopNKeyOperator(
+      Operator<? extends OperatorDesc> topNKeyOperator, VectorizationContext vContext,
+      VectorTopNKeyDesc vectorTopNKeyDesc) throws HiveException {
+
+    TopNKeyDesc topNKeyDesc = (TopNKeyDesc) topNKeyOperator.getConf();
+
+    List<ExprNodeDesc> keyColumns = topNKeyDesc.getKeyColumns();
+    VectorExpression[] keyExpressions = vContext.getVectorExpressions(keyColumns);
+    vectorTopNKeyDesc.setKeyExpressions(keyExpressions);
+    return OperatorFactory.getVectorOperator(
+        topNKeyOperator.getCompilationOpContext(), topNKeyDesc,
+        vContext, vectorTopNKeyDesc);
   }
 
   private static Class<? extends VectorAggregateExpression> findVecAggrClass(
@@ -5051,6 +5141,23 @@ public class Vectorizer implements PhysicalPlanResolver {
             }
           }
           break;
+        case TOPNKEY:
+          {
+            if (!validateTopNKeyOperator((TopNKeyOperator) op)) {
+              throw new VectorizerCannotVectorizeException();
+            }
+
+            VectorTopNKeyDesc vectorTopNKeyDesc = new VectorTopNKeyDesc();
+            vectorOp = vectorizeTopNKeyOperator(op, vContext, vectorTopNKeyDesc);
+            isNative = true;
+            if (vectorTaskColumnInfo != null) {
+              VectorExpression[] keyExpressions = vectorTopNKeyDesc.getKeyExpressions();
+              if (usesVectorUDFAdaptor(keyExpressions)) {
+                vectorTaskColumnInfo.setUsesVectorUDFAdaptor(true);
+              }
+            }
+          }
+          break;
         case SELECT:
           {
             if (!validateSelectOperator((SelectOperator) op)) {
@@ -5109,9 +5216,20 @@ public class Vectorizer implements PhysicalPlanResolver {
             FileSinkDesc fileSinkDesc = (FileSinkDesc) op.getConf();
 
             VectorFileSinkDesc vectorFileSinkDesc = new VectorFileSinkDesc();
-            vectorOp = OperatorFactory.getVectorOperator(
-                op.getCompilationOpContext(), fileSinkDesc, vContext, vectorFileSinkDesc);
-            isNative = false;
+            boolean isArrowSpecialization =
+                checkForArrowFileSink(fileSinkDesc, isTezOrSpark, vContext, vectorFileSinkDesc);
+
+            if (isArrowSpecialization) {
+              vectorOp =
+                  specializeArrowFileSinkOperator(
+                      op, vContext, fileSinkDesc, vectorFileSinkDesc);
+              isNative = true;
+            } else {
+              vectorOp =
+                  OperatorFactory.getVectorOperator(
+                      op.getCompilationOpContext(), fileSinkDesc, vContext, vectorFileSinkDesc);
+              isNative = false;
+            }
           }
           break;
         case LIMIT:
