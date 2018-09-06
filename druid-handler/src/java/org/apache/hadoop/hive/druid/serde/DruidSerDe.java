@@ -97,8 +97,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import static org.joda.time.format.ISODateTimeFormat.dateOptionalTimeParser;
-
 /**
  * DruidSerDe that is used to  deserialize objects from a Druid data source.
  */
@@ -455,24 +453,6 @@ import static org.joda.time.format.ISODateTimeFormat.dateOptionalTimeParser;
       }
     }
     return output;
-  }
-
-  private long deserializeToMillis(Object value)
-  {
-    long numberOfMillis;
-    if (value instanceof Number) {
-      numberOfMillis = ((Number) value).longValue();
-    } else {
-      // it is an extraction fn need to be parsed
-      try {
-        numberOfMillis = dateOptionalTimeParser().parseDateTime((String) value).getMillis();
-      } catch (IllegalArgumentException e) {
-        // we may not be able to parse the date if it already comes in Hive format,
-        // we retry and otherwise fail
-        numberOfMillis = Timestamp.valueOf((String) value).toEpochMilli();
-      }
-    }
-    return numberOfMillis;
   }
 
   @Override public ObjectInspector getObjectInspector() {

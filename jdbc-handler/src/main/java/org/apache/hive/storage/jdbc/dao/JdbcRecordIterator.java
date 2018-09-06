@@ -70,55 +70,7 @@ public class JdbcRecordIterator implements Iterator<Map<String, Object>> {
       Map<String, Object> record = new HashMap<String, Object>(numColumns);
       for (int i = 0; i < numColumns; i++) {
         String key = metadata.getColumnName(i + 1);
-        Object value;
-        // This is not a complete list, barely make information schema work
-        switch (metadata.getColumnTypeName(i+1).toLowerCase()) {
-          /*case "int":
-          case "integer":
-          case "smallint":
-          case "tinyint":
-            value = rs.getInt(i + 1);
-            break;
-          case "bigint":
-            value = rs.getLong(i + 1);
-            break;
-          case "float":
-            value = rs.getFloat(i + 1);
-            break;
-          case "double":
-            value = rs.getDouble(i + 1);
-            break;
-          case "bigdecimal":
-            value = HiveDecimal.create(rs.getBigDecimal(i + 1));
-            break;
-          case "boolean":
-            value = rs.getBoolean(i + 1);
-            break;
-          case "string":
-          case "char":
-          case "varchar":
-          case "long varchar":
-            value = rs.getString(i + 1);
-            break;
-          case "datetime":
-          case "time":
-            value = rs.getDate(i + 1);
-            break;*/
-          case "timestamp":
-            java.sql.Timestamp dbTs = (java.sql.Timestamp) rs.getObject(i + 1);
-            if(dbTs != null) {
-              org.apache.hadoop.hive.common.type.Timestamp hiveTs = new org.apache.hadoop.hive.common.type.Timestamp();
-              hiveTs.setTimeInMillis(dbTs.getTime(), dbTs.getNanos());
-              assert hiveTs.toEpochMilli() == dbTs.getTime();
-              value = hiveTs;
-            } else {
-              value = null;
-            }
-            break;
-          default:
-            value = rs.getObject(i + 1);
-            break;
-        }
+        Object value = rs.getObject(i + 1);
 
         record.put(key, value);
       }

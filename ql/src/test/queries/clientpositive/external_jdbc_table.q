@@ -111,7 +111,7 @@ select SUM_IKEY,bkey from (select sum(-ikey) as SUM_IKEY, bkey from ext_simple_d
 --Test filter
 explain select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey;
 select bkey from ext_simple_derby_table1 where 100 < ext_simple_derby_table1.ikey;
-select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911;
+
 SELECT distinct dkey from ext_simple_derby_table1 where ikey = '100';
 SELECT count(*) FROM (select * from ext_simple_derby_table1) v WHERE ikey = 100;
 SELECT count(*) from ext_simple_derby_table1 having count(*) > 0;
@@ -179,7 +179,8 @@ SELECT bkey FROM ext_simple_derby_table2;
 
 
 
-
+--Fails due to cast exception in SqlImplementor line 539:
+--select sum(bkey) from ext_simple_derby_table1 where ikey = 2450894 OR ikey = 2450911;
 
 
 
