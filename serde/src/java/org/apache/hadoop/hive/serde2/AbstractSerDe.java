@@ -127,10 +127,8 @@ public abstract class AbstractSerDe implements Deserializer, Serializer {
   public boolean shouldStoreFieldsInMetastore(Map<String, String> tableParams) {
     return false; // The default, unless SerDe overrides it.
   }
-  
-  
-  protected long deserializeToMillis(Object value)
-  {
+
+  protected long deserializeToMillis(Object value) {
     long numberOfMillis;
     if (value instanceof Number) {
       numberOfMillis = ((Number) value).longValue();

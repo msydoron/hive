@@ -146,91 +146,88 @@ public class JdbcSerDe extends AbstractSerDe {
       columnKey.set(columnNames.get(i));
       Writable value = input.get(columnKey);
       Object rowVal;
-      
+
       if(value instanceof NullWritable) {
         rowVal = null;
       } else {
         rowVal = ((ObjectWritable)value).get();
-        
+
         switch (hiveColumnTypeArray[i].toLowerCase()) {
-          case "int":
-          case "integer":
-          case "smallint":
-          case "tinyint":
-            if (rowVal instanceof Number) {
-              rowVal = ((Number)rowVal).intValue(); 
-            } else {
-              rowVal = Integer.valueOf(rowVal.toString());
-            }
-            break;
-          case "bigint":
-            if (rowVal instanceof Long) {
-              rowVal = ((Number)rowVal).longValue(); 
-            } else {
-              rowVal = Long.valueOf(rowVal.toString());
-            }
-            break;
-          case "float":
-            if (rowVal instanceof Number) {
-              rowVal = ((Number)rowVal).floatValue(); 
-            } else {
-              rowVal = Float.valueOf(rowVal.toString());
-            }
-            break;
-          case "double":
-            if (rowVal instanceof Number) {
-              rowVal = ((Number)rowVal).doubleValue(); 
-            } else {
-              rowVal = Double.valueOf(rowVal.toString());
-            }
-            break;
-          case "bigdecimal":
-            if (rowVal instanceof BigDecimal) {
-              //do nothing 
-            } else {
-              rowVal = new BigDecimal(rowVal.toString());
-            }
-            break;
-          case "boolean":
-            if (rowVal instanceof Number) {
-              rowVal = ((Number) value).intValue() != 0;
-            } else {
-              rowVal = Boolean.valueOf(value.toString());
-            }
-            break;
-          case "string":
-          case "char":
-          case "varchar":
-          case "long varchar":
-            rowVal = rowVal.toString();
-            break;
-          case "datetime":
-          case "time":
-            if (rowVal instanceof java.sql.Date) {
-              java.sql.Date dateRowVal = (java.sql.Date) rowVal;
-              rowVal = Date.ofEpochMilli(dateRowVal.getTime());
-            } else {
-              rowVal = Date.ofEpochMilli(deserializeToMillis(rowVal.toString()));
-            }
-            break;
-          case "timestamp":
-            if (rowVal instanceof java.sql.Timestamp) {
-              java.sql.Timestamp timestampRowVal = (java.sql.Timestamp) rowVal;
-              rowVal = Timestamp.ofEpochMilli(timestampRowVal.getTime(),timestampRowVal.getNanos());
-            } else {
-              rowVal = Timestamp.ofEpochMilli(deserializeToMillis(rowVal.toString()));
-            }
-            break;
-          default:
-            //do nothing
-            break;
+        case "int":
+        case "integer":
+        case "smallint":
+        case "tinyint":
+          if (rowVal instanceof Number) {
+            rowVal = ((Number)rowVal).intValue(); 
+          } else {
+            rowVal = Integer.valueOf(rowVal.toString());
+          }
+          break;
+        case "bigint":
+          if (rowVal instanceof Long) {
+            rowVal = ((Number)rowVal).longValue(); 
+          } else {
+            rowVal = Long.valueOf(rowVal.toString());
+          }
+          break;
+        case "float":
+          if (rowVal instanceof Number) {
+            rowVal = ((Number)rowVal).floatValue(); 
+          } else {
+            rowVal = Float.valueOf(rowVal.toString());
+          }
+          break;
+        case "double":
+          if (rowVal instanceof Number) {
+            rowVal = ((Number)rowVal).doubleValue(); 
+          } else {
+            rowVal = Double.valueOf(rowVal.toString());
+          }
+          break;
+        case "bigdecimal":
+          if (rowVal instanceof BigDecimal) {
+            //do nothing 
+          } else {
+            rowVal = new BigDecimal(rowVal.toString());
+          }
+          break;
+        case "boolean":
+          if (rowVal instanceof Number) {
+            rowVal = ((Number) value).intValue() != 0;
+          } else {
+            rowVal = Boolean.valueOf(value.toString());
+          }
+          break;
+        case "string":
+        case "char":
+        case "varchar":
+        case "long varchar":
+          rowVal = rowVal.toString();
+          break;
+        case "datetime":
+        case "time":
+          if (rowVal instanceof java.sql.Date) {
+            java.sql.Date dateRowVal = (java.sql.Date) rowVal;
+            rowVal = Date.ofEpochMilli(dateRowVal.getTime());
+          } else {
+            rowVal = Date.ofEpochMilli(deserializeToMillis(rowVal.toString()));
+          }
+          break;
+        case "timestamp":
+          if (rowVal instanceof java.sql.Timestamp) {
+            java.sql.Timestamp timestampRowVal = (java.sql.Timestamp) rowVal;
+            rowVal = Timestamp.ofEpochMilli(timestampRowVal.getTime(),timestampRowVal.getNanos());
+          } else {
+            rowVal = Timestamp.ofEpochMilli(deserializeToMillis(rowVal.toString()));
+          }
+          break;
+        default:
+          //do nothing
+          break;
         }
       }
-      
-      
       row.add(rowVal);
     }
-
     return row;
   }
 
