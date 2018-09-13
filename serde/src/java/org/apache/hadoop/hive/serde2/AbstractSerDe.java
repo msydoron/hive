@@ -24,11 +24,8 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.hive.common.type.Timestamp;
 
 import javax.annotation.Nullable;
-
-import static org.joda.time.format.ISODateTimeFormat.dateOptionalTimeParser;
 
 /**
  * Abstract class for implementing SerDe. The abstract class has been created, so that
@@ -126,22 +123,5 @@ public abstract class AbstractSerDe implements Deserializer, Serializer {
    */
   public boolean shouldStoreFieldsInMetastore(Map<String, String> tableParams) {
     return false; // The default, unless SerDe overrides it.
-  }
-
-  protected long deserializeToMillis(Object value) {
-    long numberOfMillis;
-    if (value instanceof Number) {
-      numberOfMillis = ((Number) value).longValue();
-    } else {
-      // it is an extraction fn need to be parsed
-      try {
-        numberOfMillis = dateOptionalTimeParser().parseDateTime((String) value).getMillis();
-      } catch (IllegalArgumentException e) {
-        // we may not be able to parse the date if it already comes in Hive format,
-        // we retry and otherwise fail
-        numberOfMillis = Timestamp.valueOf((String) value).toEpochMilli();
-      }
-    }
-    return numberOfMillis;
   }
 }

@@ -158,7 +158,6 @@ public class GenericJdbcDatabaseAccessor implements DatabaseAccessor {
     } finally {
       cleanupResources(conn, ps, rs);
     }
-
   }
 
 

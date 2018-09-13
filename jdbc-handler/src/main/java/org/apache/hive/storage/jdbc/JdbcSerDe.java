@@ -185,9 +185,7 @@ public class JdbcSerDe extends AbstractSerDe {
           }
           break;
         case "bigdecimal":
-          if (rowVal instanceof BigDecimal) {
-            //do nothing 
-          } else {
+          if (!(rowVal instanceof BigDecimal)) {
             rowVal = new BigDecimal(rowVal.toString());
           }
           break;
@@ -210,15 +208,15 @@ public class JdbcSerDe extends AbstractSerDe {
             java.sql.Date dateRowVal = (java.sql.Date) rowVal;
             rowVal = Date.ofEpochMilli(dateRowVal.getTime());
           } else {
-            rowVal = Date.ofEpochMilli(deserializeToMillis(rowVal.toString()));
+            rowVal = Date.valueOf (rowVal.toString());
           }
           break;
         case "timestamp":
           if (rowVal instanceof java.sql.Timestamp) {
             java.sql.Timestamp timestampRowVal = (java.sql.Timestamp) rowVal;
-            rowVal = Timestamp.ofEpochMilli(timestampRowVal.getTime(),timestampRowVal.getNanos());
+            rowVal = Timestamp.ofEpochMilli(timestampRowVal.getTime(), timestampRowVal.getNanos());
           } else {
-            rowVal = Timestamp.ofEpochMilli(deserializeToMillis(rowVal.toString()));
+            rowVal = Timestamp.valueOf (rowVal.toString());
           }
           break;
         default:
